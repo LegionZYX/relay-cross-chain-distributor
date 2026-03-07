@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Relay 跨链分发钱包 - Web 版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .wallet-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .wallet-address {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .status.disconnected {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .logs {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .results-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            color: #48bb78;
+            font-weight: bold;
+        }
+        
+        .status-failed {
+            color: #f56565;
+            font-weight: bold;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        
+        .modal h3 {
+            margin-bottom: 15px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .sending {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🔗 Relay 跨链分发钱包 - Web 版</h1>
+            <div class="wallet-section">
+                <div class="wallet-info" id="walletInfo" style="display: none;">
+                    <span class="status connected">已连接</span>
+                    <span class="wallet-address" id="walletAddress"></span>
+                </div>
+                <div>
+                    <button class="btn btn-primary" id="connectBtn" onclick="showConnectModal()">🔑 连接钱包</button>
+                    <button class="btn btn-danger" id="disconnectBtn" onclick="disconnect()" style="display: none;">断开连接</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 配置 -->
+        <div class="card">
+            <h2>⛓️ 跨链配置</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>源链</label>
+                    <select id="originChain">
+                        <option value="Ethereum">Ethereum</option>
+                        <option value="Base">Base</option>
+                        <option value="BSC">BSC</option>
+                        <option value="Arbitrum">Arbitrum</option>
+                        <option value="Optimism">Optimism</option>
+                        <option value="Polygon">Polygon</option>
+                        <option value="Avalanche">Avalanche</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>目标链</label>
+                    <select id="destChain">
+                        <option value="BSC">BSC</option>
+                        <option value="Ethereum">Ethereum</option>
+                        <option value="Base">Base</option>
+                        <option value="Arbitrum">Arbitrum</option>
+                        <option value="Optimism">Optimism</option>
+                        <option value="Polygon">Polygon</option>
+                        <option value="Avalanche">Avalanche</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>单个金额 (ETH)</label>
+                    <input type="number" id="amount" value="0.001" step="0.0001" min="0.0001">
+                </div>
+                <div class="form-group">
+                    <label>余额</label>
+                    <input type="text" id="balance" readonly placeholder="点击检查">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="checkBalance()">💰 检查余额</button>
+        </div>
+        
+        <!-- 钱包列表 -->
+        <div class="card">
+            <h2>📋 目标钱包列表</h2>
+            <textarea id="wallets" rows="6" placeholder="每行一个钱包地址&#10;0x2159864c15A8C0Bb74F3E9f57a4bfbAF5C46135b&#10;0xb8eB8fc92143A590351356Ed8F64731660DA1606"></textarea>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="loadExample()">📋 加载示例</button>
+                <button class="btn btn-danger" onclick="clearWallets()">🗑️ 清空</button>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="card">
+            <h2>🚀 操作</h2>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="generatePlan()">📝 生成分发计划</button>
+                <button class="btn btn-success" id="executeBtn" onclick="executeSending()" disabled>💸 执行发送</button>
+                <button class="btn btn-primary" onclick="exportResults()">💾 导出结果</button>
+            </div>
+            <div id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果 -->
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2>📊 分发结果</h2>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>目标钱包</th>
+                        <th>金额</th>
+                        <th>状态</th>
+                        <th>TxHash</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+        
+        <!-- 日志 -->
+        <div class="card">
+            <h2>📝 执行日志</h2>
+            <div class="logs" id="logs"></div>
+        </div>
+    </div>
+    
+    <!-- 连接钱包模态框 -->
+    <div class="modal" id="connectModal">
+        <div class="modal-content">
+            <h3>🔑 连接钱包</h3>
+            <div class="form-group">
+                <label>私钥</label>
+                <input type="password" id="privateKey" placeholder="输入私钥（0x 开头或不带 0x 均可）">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="connect()">连接</button>
+                <button class="btn btn-danger" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        let pollInterval = null;
+        
+        // 显示连接模态框
+        function showConnectModal() {
+            document.getElementById('connectModal').style.display = 'block';
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('connectModal').style.display = 'none';
+        }
+        
+        // 连接钱包
+        async function connect() {
+            const privateKey = document.getElementById('privateKey').value.trim();
+            
+            try {
+                const response = await fetch(API_BASE + '/api/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({private_key: privateKey})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('walletAddress').textContent = data.address;
+                    document.getElementById('walletInfo').style.display = 'flex';
+                    document.getElementById('connectBtn').style.display = 'none';
+                    document.getElementById('disconnectBtn').style.display = 'inline-block';
+                    closeModal();
+                    addLog('✅ ' + data.message);
+                    startPolling();
+                } else {
+                    alert('连接失败：' + data.message);
+                }
+            } catch (error) {
+                alert('连接失败：' + error.message);
+            }
+        }
+        
+        // 断开连接
+        async function disconnect() {
+            try {
+                await fetch(API_BASE + '/api/disconnect', {method: 'POST'});
+                document.getElementById('walletInfo').style.display = 'none';
+                document.getElementById('connectBtn').style.display = 'inline-block';
+                document.getElementById('disconnectBtn').style.display = 'none';
+                document.getElementById('balance').value = '';
+                document.getElementById('resultsBody').innerHTML = '';
+                document.getElementById('resultsCard').style.display = 'none';
+                document.getElementById('logs').innerHTML = '';
+                stopPolling();
+                addLog('已断开连接');
+            } catch (error) {
+                alert('断开失败：' + error.message);
+            }
+        }
+        
+        // 检查余额
+        async function checkBalance() {
+            const chain = document.getElementById('originChain').value;
+            
+            try {
+                const response = await fetch(API_BASE + '/api/balance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chain: chain})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('balance').value = data.balance.toFixed(6) + ' ETH';
+                    addLog(`💰 ${chain} 余额：${data.balance.toFixed(6)} ETH`);
+                } else {
+                    alert('检查失败：' + data.message);
+                }
+            } catch (error) {
+                alert('检查失败：' + error.message);
+            }
+        }
+        
+        // 加载示例钱包
+        function loadExample() {
+            const example = `0x2159864c15A8C0Bb74F3E9f57a4bfbAF5C46135b
+0xb8eB8fc92143A590351356Ed8F64731660DA1606`;
+            document.getElementById('wallets').value = example;
+            addLog('📋 已加载示例钱包');
+        }
+        
+        // 清空钱包
+        function clearWallets() {
+            document.getElementById('wallets').value = '';
+            addLog('🗑️ 已清空钱包列表');
+        }
+        
+        // 生成分发计划
+        async function generatePlan() {
+            const walletsText = document.getElementById('wallets').value.trim();
+            const wallets = walletsText.split('\n').filter(w => w.trim().startsWith('0x'));
+            const amount = parseFloat(document.getElementById('amount').value);
+            const originChain = document.getElementById('originChain').value;
+            const destChain = document.getElementById('destChain').value;
+            
+            if (wallets.length === 0) {
+                alert('请输入目标钱包地址');
+                return;
+            }
+            
+            try {
+                addLog('🚀 开始生成分发计划...');
+                
+                const response = await fetch(API_BASE + '/api/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        wallets: wallets,
+                        amount: amount,
+                        origin_chain: originChain,
+                        dest_chain: destChain
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(`✨ 成功生成 ${data.count} 个分发计划`);
+                    document.getElementById('executeBtn').disabled = false;
+                    startPolling();
+                } else {
+                    alert('生成失败：' + data.message);
+                }
+            } catch (error) {
+                alert('生成失败：' + error.message);
+            }
+        }
+        
+        // 执行发送
+        async function executeSending() {
+            if (!confirm('⚠️ 确认执行跨链发送？\n\n此操作不可撤销！')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_BASE + '/api/execute', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog('💸 开始执行发送...');
+                    document.getElementById('progressContainer').style.display = 'block';
+                    startPolling();
+                } else {
+                    alert('执行失败：' + data.message);
+                }
+            } catch (error) {
+                alert('执行失败：' + error.message);
+            }
+        }
+        
+        // 导出结果
+        async function exportResults() {
+            try {
+                const response = await fetch(API_BASE + '/api/results');
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cross_chain_result_${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                addLog('💾 结果已导出');
+            } catch (error) {
+                alert('导出失败：' + error.message);
+            }
+        }
+        
+        // 轮询状态
+        async function pollStatus() {
+            try {
+                const response = await fetch(API_BASE + '/api/status');
+                const data = await response.json();
+                
+                if (data.logs && data.logs.length > 0) {
+                    document.getElementById('logs').innerHTML = data.logs.map(log => 
+                        `<div class="log-entry">${log}</div>`
+                    ).join('');
+                    
+                    const logsContainer = document.getElementById('logs');
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+                
+                if (data.is_sending) {
+                    document.getElementById('executeBtn').disabled = true;
+                    document.getElementById('executeBtn').classList.add('sending');
+                } else {
+                    document.getElementById('executeBtn').disabled = false;
+                    document.getElementById('executeBtn').classList.remove('sending');
+                }
+                
+                // 更新结果表格
+                if (data.distribution_count > 0) {
+                    updateResultsTable();
+                }
+                
+            } catch (error) {
+                console.error('轮询失败:', error);
+            }
+        }
+        
+        // 更新结果表格
+        async function updateResultsTable() {
+            try {
+                const response = await fetch(API_BASE + '/api/results');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('resultsBody');
+                tbody.innerHTML = data.results.map(r => `
+                    <tr>
+                        <td>${r.index}</td>
+                        <td style="font-family: monospace; font-size: 12px;">${r.target.substring(0, 20)}...</td>
+                        <td>${r.send_amount} ETH</td>
+                        <td class="${r.status === 'success' ? 'status-success' : 'status-failed'}">${r.status || 'pending'}</td>
+                        <td>${r.tx_hash ? `<a href="${r.explorer_url}" target="_blank" style="font-family: monospace; font-size: 11px;">${r.tx_hash.substring(0, 20)}...</a>` : '-'}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('resultsCard').style.display = 'block';
+                
+                // 计算进度
+                const total = data.results.length;
+                const completed = data.results.filter(r => r.status === 'success' || r.status === 'failed' || r.status === 'error').length;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                document.getElementById('progressBar').textContent = `${percent}%`;
+                
+            } catch (error) {
+                console.error('更新结果失败:', error);
+            }
+        }
+        
+        // 添加日志
+        function addLog(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div class="log-entry">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        // 开始轮询
+        function startPolling() {
+            if (!pollInterval) {
+                pollInterval = setInterval(pollStatus, 2000);
+            }
+        }
+        
+        // 停止轮询
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+        
+        // 页面加载时轮询
+        startPolling();
+    </script>
+</body>
+</html>
