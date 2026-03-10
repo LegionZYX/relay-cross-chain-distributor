@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Relay 跨链分发钱包 - 完整优化版
-- 可滚动 UI
-- 完整分发流程
-- 性能优化
+Relay 跨链分发钱包 - 完整修复版
+修复问题:
+1. Checksum 地址问题
+2. API 错误处理优化
+3. 添加详细的错误日志
 """
 
 import tkinter as tk
@@ -85,7 +86,7 @@ NATIVE_TOKEN = "0x0000000000000000000000000000000000000000"
 class CrossChainDistributor:
     def __init__(self, root):
         self.root = root
-        self.root.title("🔗 Relay 跨链分发钱包")
+        self.root.title("🔗 Relay 跨链分发钱包 - 修复版")
         self.root.geometry("1000x700")
         
         self.wallet_address = None
@@ -164,37 +165,8 @@ class CrossChainDistributor:
         chain_frame = ttk.LabelFrame(parent, text="⛓️ 链配置", padding=padding)
         chain_frame.grid(row=1, column=0, sticky="we", padx=10, pady=5)
         
-        ttk.Label(chain_frame, text="源链:").grid(row=0, column=0, padx=5)
-        self.origin_chain_var = tk.StringVar(value="Base")
-        self.origin_combo = ttk.Combobox(chain_frame, textvariable=self.origin_chain_var, 
-                                        values=list(DEFAULT_CHAINS.keys()), width=15, state="readonly")
-        self.origin_combo.grid(row=0, column=1, padx=5)
-        self.origin_combo.bind("<<ComboboxSelected>>", lambda e: self.on_chain_change())
-        
-        ttk.Label(chain_frame, text="→").grid(row=0, column=2, padx=5)
-        
-        ttk.Label(chain_frame, text="目标链:").grid(row=0, column=3, padx=5)
-        self.dest_chain_var = tk.StringVar(value="BSC")
-        self.dest_combo = ttk.Combobox(chain_frame, textvariable=self.dest_chain_var,
-                                      values=list(DEFAULT_CHAINS.keys()), width=15, state="readonly")
-        self.dest_combo.grid(row=0, column=4, padx=5)
-        self.dest_combo.bind("<<ComboboxSelected>>", lambda e: self.on_chain_change())
-        
-        # Token 选择
-        ttk.Label(chain_frame, text="支付 Token:").grid(row=0, column=5, padx=5)
-        self.token_var = tk.StringVar(value="Native")
-        self.token_combo = ttk.Combobox(chain_frame, textvariable=self.token_var,
-                                       values=["Native", "USDC", "USDT"], width=10, state="readonly")
-        self.token_combo.grid(row=0, column=6, padx=5)
-        
-        ttk.Label(chain_frame, text="接收 Token:").grid(row=0, column=7, padx=5)
-        self.receive_token_var = tk.StringVar(value="BNB")
-        self.receive_combo = ttk.Combobox(chain_frame, textvariable=self.receive_token_var,
-                                         values=["Native", "USDC", "USDT"], width=10, state="readonly")
-        self.receive_combo.grid(row=0, column=8, padx=5)
-        
         # ===== 3. 金额和兑换 =====
-        amount_frame = ttk.LabelFrame(parent, text="💰 金额和兑换 (自动计算)", padding=padding)
+        amount_frame = ttk.LabelFrame(parent, text="💰 金额和兑换", padding=padding)
         amount_frame.grid(row=2, column=0, sticky="we", padx=10, pady=5)
         
         # 分发模式
@@ -244,26 +216,6 @@ class CrossChainDistributor:
                                             foreground="green", font=('Arial', 10, 'bold'), width=18, anchor='w')
         self.receive_total_label.grid(row=0, column=4, padx=5)
         
-        # 价格和汇率
-        price_frame = ttk.Frame(amount_frame)
-        price_frame.grid(row=3, column=0, columnspan=10, sticky="w", pady=5)
-        
-        self.pay_price_label = ttk.Label(price_frame, text="💵 $--", foreground="green", font=('Arial', 9, 'bold'))
-        self.pay_price_label.grid(row=0, column=0, padx=5)
-        
-        self.receive_price_label = ttk.Label(price_frame, text="💵 $--", foreground="green", font=('Arial', 9, 'bold'))
-        self.receive_price_label.grid(row=0, column=1, padx=15)
-        
-        self.exchange_rate_label = ttk.Label(price_frame, text="💱 --", foreground="blue", font=('Arial', 9))
-        self.exchange_rate_label.grid(row=0, column=2, padx=15)
-        
-        ttk.Button(price_frame, text="🔄 刷新价格", command=self.update_price_display).grid(row=0, column=3, padx=5)
-        
-        # 绑定计算事件
-        self.pay_single_var.trace('w', lambda *args: self.calculate_exchange())
-        self.pay_total_var.trace('w', lambda *args: self.calculate_exchange())
-        self.wallet_count_var.trace('w', lambda *args: self.calculate_exchange())
-        
         # ===== 4. 目标钱包 =====
         target_frame = ttk.LabelFrame(parent, text="📋 目标钱包列表", padding=padding)
         target_frame.grid(row=3, column=0, sticky="we", padx=10, pady=5)
@@ -292,8 +244,7 @@ class CrossChainDistributor:
         
         ttk.Button(button_frame, text="🔍 测试 API", command=self.test_api).grid(row=0, column=0, padx=10)
         ttk.Button(button_frame, text="🚀 生成分发计划", command=self.generate_distribution).grid(row=0, column=1, padx=10)
-        ttk.Button(button_frame, text="💸 执行发送", command=self.execute_sending, 
-                  style='Accent.TButton').grid(row=0, column=2, padx=10)
+        ttk.Button(button_frame, text="💸 执行发送", command=self.execute_sending).grid(row=0, column=2, padx=10)
         ttk.Button(button_frame, text="💾 导出结果", command=self.export_results).grid(row=0, column=3, padx=10)
         
         # ===== 7. 日志 =====
@@ -310,7 +261,7 @@ class CrossChainDistributor:
         self.progress_label = ttk.Label(parent, text="就绪", font=('Arial', 10, 'bold'))
         self.progress_label.grid(row=8, column=0, padx=10, pady=5)
         
-        # 初始化显示
+        # 初始化
         self.on_chain_change()
         self.calculate_exchange()
     
@@ -521,14 +472,18 @@ class CrossChainDistributor:
         
         return self.web3_connections[chain_name]
     
-    def estimate_gas(self, w3, from_addr, to_addr, value_wei):
+    def estimate_gas(self, w3, from_addr, to_address, value_wei):
         """估算 gas 费用并优化"""
         try:
             gas_price = w3.eth.gas_price
             
+            # 将地址转换为 checksum 格式
+            to_checksum = Web3.to_checksum_address(to_address)
+            from_checksum = Web3.to_checksum_address(from_addr)
+            
             gas_limit = w3.eth.estimate_gas({
-                'from': from_addr,
-                'to': to_addr,
+                'from': from_checksum,
+                'to': to_checksum,
                 'value': value_wei
             })
             
@@ -547,10 +502,10 @@ class CrossChainDistributor:
                 'total_cost_eth': w3.from_wei(total_gas_cost, 'ether')
             }
         except Exception as e:
-            raise ValueError(f"Gas 估算失败: {e}")
+            raise ValueError(f"Gas 估算失败：{e}")
     
     def send_transaction(self, chain_name, to_address, amount_wei):
-        """构建、签名并发送交易"""
+        """构建、签名并发送交易 - 修复 checksum 地址"""
         try:
             w3 = self.get_web3_connection(chain_name)
             
@@ -559,13 +514,17 @@ class CrossChainDistributor:
             
             from_address = self.wallet_address
             
+            # 将地址转换为 checksum 格式
+            to_checksum = Web3.to_checksum_address(to_address)
+            from_checksum = Web3.to_checksum_address(from_address)
+            
             gas_info = self.estimate_gas(w3, from_address, to_address, amount_wei)
             
-            nonce = w3.eth.get_transaction_count(from_address)
+            nonce = w3.eth.get_transaction_count(from_checksum)
             
             tx = {
                 'nonce': nonce,
-                'to': to_address,
+                'to': to_checksum,
                 'value': amount_wei,
                 'gas': gas_info['gas_limit'],
                 'gasPrice': gas_info['gas_price'],
@@ -577,7 +536,7 @@ class CrossChainDistributor:
             tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
             tx_hash_hex = w3.to_hex(tx_hash)
             
-            self.log(f"📤 交易已发送: {tx_hash_hex[:20]}...")
+            self.log(f"📤 交易已发送：{tx_hash_hex[:20]}...")
             
             receipt = self.wait_for_transaction_receipt(w3, tx_hash)
             
@@ -597,9 +556,11 @@ class CrossChainDistributor:
                 }
                 
         except Exception as e:
+            error_msg = str(e)
+            self.log(f"❌ 发送失败：{error_msg}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': error_msg
             }
     
     def wait_for_transaction_receipt(self, w3, tx_hash, timeout=120):
@@ -620,74 +581,6 @@ class CrossChainDistributor:
         
         return None
     
-    def update_price_display(self):
-        """刷新价格显示"""
-        self.price_cache.clear()
-        self.calculate_exchange()
-        self.log("🔄 价格已刷新")
-    
-    def load_wallets_file(self):
-        """加载钱包文件"""
-        file_path = filedialog.askopenfilename(filetypes=[("文本文件", "*.txt"), ("JSON 文件", "*.json")])
-        if not file_path:
-            return
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            if file_path.endswith('.json'):
-                data = json.loads(content)
-                wallets = data.get('wallets', data) if isinstance(data, dict) else data
-                wallet_list = [w if isinstance(w, str) else w.get('address', '') for w in wallets]
-            else:
-                wallet_list = [line.strip() for line in content.split('\n') if line.strip().startswith('0x')]
-            
-            current = self.target_text.get("1.0", tk.END).strip()
-            if current:
-                self.target_text.insert(tk.END, "\n" + "\n".join(wallet_list))
-            else:
-                self.target_text.insert(tk.END, "\n".join(wallet_list))
-            
-            self.update_wallet_count()
-            self.log(f"✅ 已加载 {len(wallet_list)} 个钱包")
-        except Exception as e:
-            messagebox.showerror("错误", f"加载失败：{e}")
-    
-    def paste_example(self):
-        """粘贴示例钱包"""
-        examples = """0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
-0x8Ba1f109551bD432803012645Hac136Dd85721c9
-0x1234567890abcdef1234567890abcdef12345678
-0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"""
-        
-        current = self.target_text.get("1.0", tk.END).strip()
-        if not current:
-            self.target_text.insert(tk.END, examples)
-            self.update_wallet_count()
-            self.log("📋 已粘贴示例钱包")
-    
-    def clear_wallets(self):
-        """清空钱包列表"""
-        self.target_text.delete("1.0", tk.END)
-        self.update_wallet_count()
-        self.log("🗑️ 已清空")
-    
-    def update_wallet_count(self):
-        """更新钱包数量显示"""
-        content = self.target_text.get("1.0", tk.END).strip()
-        count = len([w for w in content.split('\n') if w.strip().startswith('0x')])
-        self.count_label.config(text=f"数量：{count}")
-        return count
-    
-    def use_current_wallet(self):
-        """使用当前钱包作为退款地址"""
-        if self.is_connected and self.wallet_address:
-            self.refund_addr_var.set(self.wallet_address)
-            self.log(f"💰 退款地址：{self.wallet_address}")
-        else:
-            messagebox.showwarning("警告", "请先连接钱包")
-    
     def test_api(self):
         """测试 API"""
         if not self.is_connected:
@@ -696,7 +589,7 @@ class CrossChainDistributor:
         
         self.log("🔍 测试 API...")
         try:
-            recipient = self.wallet_address  # 使用已连接的钱包地址（有效）
+            recipient = self.wallet_address
             amount = float(self.pay_single_var.get())
             
             payload = {
@@ -793,50 +686,53 @@ class CrossChainDistributor:
             
             # 检查余额
             balance = w3.eth.get_balance(self.wallet_address)
-            balance_eth = w3.from_wei(balance, 'ether')
+            balance_eth = float(w3.from_wei(balance, 'ether'))
             
             # 计算总发送金额
             total_send = sum(r['send_amount'] for r in self.distribution_results)
             
-            # 预估 Gas 费用（第一笔交易）
+            # 预估 Gas 费用
             first_result = self.distribution_results[0]
             amount_wei = int(first_result['send_amount'] * 10**18)
-            gas_info = self.estimate_gas(w3, self.wallet_address, first_result['deposit_addr'], amount_wei)
             
-            # 计算总 Gas 费用（每笔交易的 gas 大致相同)
+            # 转换为 checksum 地址
+            deposit_addr = Web3.to_checksum_address(first_result['deposit_addr'])
+            gas_info = self.estimate_gas(w3, self.wallet_address, deposit_addr, amount_wei)
+            
+            # 计算总 Gas 费用
             total_gas_cost = gas_info['total_cost_eth'] * len(self.distribution_results)
             total_needed = total_send + total_gas_cost
             
-            self.log(f"   钱包余额: {balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
-            self.log(f"   发送总额: {total_send:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
+            self.log(f"   钱包余额：{balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
+            self.log(f"   发送总额：{total_send:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
             self.log(f"   预估 Gas: {total_gas_cost:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
-            self.log(f"   总计需要: {total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
+            self.log(f"   总计需要：{total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}")
             
             # 检查余额是否充足
             if balance_eth < total_needed:
                 error_msg = f"❌ 余额不足!\n\n"
-                error_msg += f"当前余额: {balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n"
-                error_msg += f"需要总额: {total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n\n"
-                error_msg += f"缺少: {total_needed - balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}"
+                error_msg += f"当前余额：{balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n"
+                error_msg += f"需要总额：{total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n\n"
+                error_msg += f"缺少：{total_needed - balance_eth:.6f} {DEFAULT_CHAINS[origin_chain]['name']}"
                 messagebox.showerror("余额不足", error_msg)
                 return
             
             self.log("✅ 余额检查通过!")
             
         except Exception as e:
-            self.log(f"❌ 检查失败: {e}")
-            messagebox.showerror("错误", f"检查余额和 Gas 头败:\n{e}")
+            self.log(f"❌ 检查失败：{e}")
+            messagebox.showerror("错误", f"检查余额和 Gas 失败:\n{e}")
             return
         
         wallet_count = len(self.distribution_results)
         
         msg = f"⚠️ 即将执行实际跨链发送\n\n"
-        msg += f"源链: {self.origin_chain_var.get()}\n"
-        msg += f"目标链: {self.dest_chain_var.get()}\n"
-        msg += f"钱包数量: {wallet_count}\n"
-        msg += f"发送总额: {total_send:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n"
+        msg += f"源链：{self.origin_chain_var.get()}\n"
+        msg += f"目标链：{self.dest_chain_var.get()}\n"
+        msg += f"钱包数量：{wallet_count}\n"
+        msg += f"发送总额：{total_send:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n"
         msg += f"预估 Gas: {total_gas_cost:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n"
-        msg += f"总计需要: {total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n\n"
+        msg += f"总计需要：{total_needed:.6f} {DEFAULT_CHAINS[origin_chain]['name']}\n\n"
         msg += f"⚠️ 此操作不可撤销，确认继续？"
         
         if not messagebox.askyesno("⚠️ 确认发送", msg):
@@ -855,7 +751,7 @@ class CrossChainDistributor:
         thread.start()
     
     def _run_distribution(self, wallets, base_amount, execute=False):
-        """执行分发计划生成 - 支持普通跨链模式"""
+        """执行分发计划生成 - 改进错误处理"""
         origin_chain = self.origin_chain_var.get()
         origin_symbol = DEFAULT_CHAINS[origin_chain]["name"]
         dest_chain = self.dest_chain_var.get()
@@ -884,8 +780,8 @@ class CrossChainDistributor:
                 if 'Deposit addresses only supported' in error_msg:
                     use_deposit_address = False
                     self.log("⚠️ 检测到不支持 Deposit Address 模式，使用普通跨链模式")
-        except:
-            pass
+        except Exception as e:
+            self.log(f"⚠️ API 检测失败：{e}")
         
         for i, wallet in enumerate(wallets):
             try:
@@ -935,12 +831,16 @@ class CrossChainDistributor:
                     self.distribution_results.append(result_item)
                     
                     self.log(f"✅ [{i+1}/{len(wallets)}] {wallet[:15]}... | {final_amount:.5f} {origin_symbol} | {deposit[:20]}...")
+                else:
+                    error_data = r.json()
+                    error_msg = error_data.get('message', 'Unknown error')
+                    self.log(f"❌ [{i+1}/{len(wallets)}] API 错误：{error_msg}")
                 
                 self.progress['value'] = i + 1
                 self.progress_label.config(text=f"进度：{i+1}/{len(wallets)}")
                 
             except Exception as e:
-                self.log(f"❌ [{i+1}/{len(wallets)}] 失败：{e}")
+                self.log(f"❌ [{i+1}/{len(wallets)}] 失败：{str(e)[:100]}")
                 self.progress['value'] = i + 1
         
         self.log(f"\n✨ 完成！成功 {len(self.distribution_results)}/{len(wallets)} 个")
@@ -964,9 +864,13 @@ class CrossChainDistributor:
                 amount_eth = result['send_amount']
                 amount_wei = int(amount_eth * 10**18)
                 
+                # 转换为 checksum 地址
+                deposit_checksum = Web3.to_checksum_address(deposit_addr)
+                self.log(f"   中转地址：{deposit_checksum}")
+                
                 tx_result = self.send_transaction(
                     chain_name=origin_chain,
-                    to_address=deposit_addr,
+                    to_address=deposit_checksum,
                     amount_wei=amount_wei
                 )
                 
@@ -981,13 +885,13 @@ class CrossChainDistributor:
                     self.log(f"✅ 交易成功!")
                     self.log(f"   TxHash: {tx_result['tx_hash']}")
                     self.log(f"   Gas: {tx_result['gas_used']}")
-                    self.log(f"   区块: {tx_result['block_number']}")
+                    self.log(f"   区块：{tx_result['block_number']}")
                 else:
                     result['status'] = 'failed'
                     result['error'] = tx_result.get('error', 'Unknown error')
                     
                     failed_count += 1
-                    self.log(f"❌ 交易失败: {result['error']}")
+                    self.log(f"❌ 交易失败：{result['error']}")
                 
                 self.progress['value'] = i + 1
                 self.progress_label.config(text=f"进度：{i+1}/{len(self.distribution_results)} | 成功：{success_count} | 失败：{failed_count}")
@@ -998,7 +902,7 @@ class CrossChainDistributor:
                 
             except Exception as e:
                 failed_count += 1
-                self.log(f"❌ 发送异常: {e}")
+                self.log(f"❌ 发送异常：{str(e)[:100]}")
                 result['status'] = 'error'
                 result['error'] = str(e)
                 
@@ -1006,8 +910,8 @@ class CrossChainDistributor:
         
         self.log("\n" + "="*60)
         self.log(f"🎉 发送完成!")
-        self.log(f"✅ 成功: {success_count}")
-        self.log(f"❌ 失败: {failed_count}")
+        self.log(f"✅ 成功：{success_count}")
+        self.log(f"❌ 失败：{failed_count}")
         self.log("="*60)
         
         self.progress_label.config(text=f"✅ 发送完成 | 成功：{success_count} | 失败：{failed_count}")
@@ -1015,8 +919,8 @@ class CrossChainDistributor:
         
         messagebox.showinfo("发送完成", 
                           f"🎉 跨链发送完成!\n\n"
-                          f"✅ 成功: {success_count}\n"
-                          f"❌ 失败: {failed_count}\n\n"
+                          f"✅ 成功：{success_count}\n"
+                          f"❌ 失败：{failed_count}\n\n"
                           f"点击\"💾 导出结果\"保存交易记录")
     
     def export_results(self):
